@@ -1,8 +1,14 @@
+import { NavigationContext, Navigator } from '../router/context'
+
 const Home = () => {
     return (
-        <div className="App">
+        <div>
             <h1>root</h1>
-            <button>about</button>
+            <NavigationContext.Consumer>
+                {({goTo}) => {
+                    return <button onClick={() => goTo('/about')}>about</button>
+                }}
+            </NavigationContext.Consumer>
         </div>
     )
 }

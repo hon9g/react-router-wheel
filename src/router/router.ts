@@ -1,4 +1,7 @@
-import { Action as HistoryAction, Location } from "./history";
+import {
+    Action as HistoryAction,
+    Location as HistoryLocation
+} from "./history";
 /**
  * A Router instance manages all navigation and data loading/mutations
  */
@@ -182,6 +185,33 @@ route: RouteObjectType;
     readonly [key in Key]: string | undefined;
 }
 
-export type Action = HistoryAction
+export { HistoryAction as Action }
 
-export type Location = Location
+export type Location = HistoryLocation
+
+/**
+ * @private
+ */
+ export function stripBasename(
+    pathname: string,
+    basename: string
+  ): string | null {
+    if (basename === "/") return pathname;
+
+    if (!pathname.toLowerCase().startsWith(basename.toLowerCase())) {
+        return null;
+    }
+
+    // We want to leave trailing slash behavior in the user's control, so if they
+    // specify a basename with a trailing slash, we should support it
+    let startIndex = basename.endsWith("/")
+        ? basename.length - 1
+        : basename.length;
+    let nextChar = pathname.charAt(startIndex);
+    if (nextChar && nextChar !== "/") {
+        // pathname does not start with basename/
+        return null;
+    }
+
+    return pathname.slice(startIndex) || "/";
+}

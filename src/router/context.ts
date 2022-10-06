@@ -1,4 +1,6 @@
-import { History, To } from "./history";
+import { createContext } from 'react'
+import { History, To } from './history'
+import { Action as NavigationType, Location } from './router'
 
 /**
  * A Navigator is a "location changer"; it's how you get to different locations.
@@ -13,5 +15,22 @@ import { History, To } from "./history";
     createHref: History["createHref"];
     go: History["go"];
     push(to: To, state?: any): void;
-    replace(to: To, state?: any): void;
 }
+interface NavigationContextObject {
+    basename: string;
+    navigator: Navigator;
+    goTo: (path: string) => void
+}
+  
+export const NavigationContext = createContext<NavigationContextObject>(
+    null!
+)
+
+interface LocationContextObject {
+    location: Location;
+    navigationType: NavigationType;
+}
+
+  export const LocationContext = createContext<LocationContextObject>(
+    null!
+);

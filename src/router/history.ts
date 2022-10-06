@@ -37,12 +37,34 @@
     /**
      * A URL search string, beginning with a ?.
      */
-    search: string;
+    search?: string;
   
     /**
      * A URL fragment identifier, beginning with a #.
      */
-    hash: string;
+    hash?: string;
+}
+
+/**
+ * A change to the current location.
+ */
+ export interface Update {
+    /**
+     * The action that triggered the change.
+     */
+    action: Action;
+  
+    /**
+     * The new location.
+     */
+    location: Pick<Location, 'pathname' | 'state' | 'key'>;
+}
+
+/**
+ * A function that receives notifications about location changes.
+ */
+ export interface Listener {
+    (update: Update): void;
 }
 
 /**
@@ -76,12 +98,6 @@ export type To = string | Partial<Path>
  */
  export interface History {
     /**
-     * The last action that modified the current location. This will always be
-     * Action.Pop when a history instance is first created. This value is mutable.
-     */
-    readonly action: Action;
-  
-    /**
      * The current location. This value is mutable.
      */
     readonly location: Location;
@@ -101,4 +117,76 @@ export type To = string | Partial<Path>
      * @param delta - The delta in the stack index
      */
     go(delta: number): void;
+
+    /**
+     * Pushes a new location onto the history stack, increasing its length by one.
+     * If there were any entries in the stack after the current one, they are
+     * lost.
+     *
+     * @param to - The new URL
+     * @param state - Data to associate with the new location
+     */
+    push(to: To, state?: any): void;
+
+    /**
+     * Sets up a listener that will be called whenever the current location
+     * changes.
+     *
+     * @param listener - A function that will be called when the location changes
+     * @returns unlisten - A function that may be used to stop listening
+     */
+    listen(listener: Listener): () => void;
+}
+
+const PopStateEventType = 'popstate'
+
+
+export const createBrowserHistory = (): History => ({
+    location: {
+        pathname: window.location.pathname,
+        state: {},
+        key: '',
+    },
+    createHref(to: To) {
+        return typeof to === "string" ? to : createPath(to)
+    },
+    go(n) {
+        return window.history.go(n)
+    },
+    push(to: To) {
+        const url = this.createHref(to)
+        // try...catch because iOS limits us to 100 pushState calls :/
+        try {
+            window.history.pushState(null, "", url)
+        } catch (error) {
+            // They are going to lose state here, but there is no real
+            // way to warn them about it since the page will refresh...
+            window.location.assign(url)
+        }
+    },
+    listen(fn: Listener) {
+        const handlePop = () => {
+            fn({ action: Action.Pop, location: this.location })
+        }
+        window.addEventListener(PopStateEventType, handlePop)
+
+        return () => {
+        window.removeEventListener(PopStateEventType, handlePop)
+        };
+    },
+})
+
+/**
+ * Creates a string URL path from the given pathname, search, and hash components.
+ */
+ export function createPath({
+    pathname = "/",
+    search = "",
+    hash = "",
+}: Partial<Path>) {
+    if (search && search !== "?")
+    pathname += search.charAt(0) === "?" ? search : "?" + search;
+    if (hash && hash !== "#")
+    pathname += hash.charAt(0) === "#" ? hash : "#" + hash;
+    return pathname;
 }
